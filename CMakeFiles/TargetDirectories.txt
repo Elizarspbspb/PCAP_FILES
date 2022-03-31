@@ -1,3 +1,0 @@
-/home/elizar/Рабочий стол/kiberoop/pcap_files/CMakeFiles/rebuild_cache.dir
-/home/elizar/Рабочий стол/kiberoop/pcap_files/CMakeFiles/edit_cache.dir
-/home/elizar/Рабочий стол/kiberoop/pcap_files/CMakeFiles/pcap.dir
