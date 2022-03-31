@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
         cout << "Cant get netmask for device " << dev << endl;
         net = 0;
         mask = 0;
-        return -2;
     }
     cout << "Device live interface = " << dev << endl;
 
@@ -61,7 +60,7 @@ int main(int argc, char *argv[])
     if((adhandle = pcap_open_live(dev, MAXLEN, 1, TIMEOUT, errbuff)) == NULL)
     {
         cout << "Cant open device: " << errbuff << endl;
-        exit(0);
+        //exit(0);
     }
     cout << "live interface descriptor = " << adhandle << endl;
     cout << ".pcap file interface descriptor =  " << pcap_get_selectable_fd(pcap) << endl;
@@ -70,7 +69,7 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Device %s doesn't provide Ethernet headers -not  supported\n", dev);
         cout << "Device " << dev << " doesn't provide Ethernet headers -not  supported"  << endl;
-        return(2);
+        //return(2);
     }
 
     net_addr.s_addr = net;
@@ -88,7 +87,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "\nunable syntax: %s\n", pcap_geterr(pcap));
         cout << "unable syntax: " << pcap_geterr(pcap) << endl; // информация об ошибке
         pcap_freealldevs(alldevs);
-        return -1;
     }
 
     if(pcap_setfilter(pcap, &fcode) < 0) // применение фильтра
@@ -96,7 +94,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "\nerror in setting filter: %s\n", pcap_geterr(pcap));
         cout << "error in setting filter: " << pcap_geterr(pcap) << endl;  // информация об ошибке
         pcap_freealldevs(alldevs);
-        return -1;
     }
 
     pcap_loop(pcap, 0, callback, NULL); // цикл обработки захватываемых пакетов
