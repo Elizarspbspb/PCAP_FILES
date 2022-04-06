@@ -13,7 +13,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP jsoncpp)
 link_libraries(${JSONCPP_LIBRARIES})
 
-set(SOURCE_FILES main.h main.cpp protocols.h protocols.cpp formjson.h formjson.cpp callback.h callback.cpp)
+set(SOURCE_FILES main.cpp)
 
 add_executable(pcap ${SOURCE_FILES})
 

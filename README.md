@@ -8,5 +8,5 @@ OS Linux (Ubuntu)
 5. Выполнить команды
 6. cmake .
 7. cmake --build .
-8. sudo ./pcap test3.pcap
+8. ./pcap test3.pcap
 9. После отработки, программа создаст заполненный json файл. 
