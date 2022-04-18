@@ -34,22 +34,8 @@ private:
     u_short ftype;
 
 public:
-    Filter() {
-        size_ethernet = sizeof(struct sniff_ethernet);
-        size_ip = sizeof(struct sniff_ip);
-        size_tcp = sizeof(struct sniff_tcp);
-        countPacket = 0;
-        ftype = 0;
-    };
-
-    ~Filter() {
-        source_mac.clear();
-        destination_mac.clear();
-        source_ip.clear();
-        destination_ip.clear();
-        proto.clear();
-        countPacket = 0;
-    }
+    Filter();
+    ~Filter();
 
     void to_json(); // запись в файл
     void callback(u_char *useless, pcap_pkthdr *header, const u_char *packet); // обработка пакетов

@@ -1,5 +1,22 @@
 #include "filter.h"
 
+Filter::Filter() {
+    size_ethernet = sizeof(struct sniff_ethernet);
+    size_ip = sizeof(struct sniff_ip);
+    size_tcp = sizeof(struct sniff_tcp);
+    countPacket = 0;
+    ftype = 0;
+}
+
+Filter::~Filter() {
+    source_mac.clear();
+    destination_mac.clear();
+    source_ip.clear();
+    destination_ip.clear();
+    proto.clear();
+    countPacket = 0;
+}
+
 void Filter::to_json() {
     // root
     Json::Value root;
