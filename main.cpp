@@ -47,18 +47,21 @@ int main(int argc, char *argv[])
         std::ifstream pcap_file(argv[2]);
         if (pcap_file.is_open())
         {
-            std::thread thread1{[&]() {
+            //std::thread thread1{[&]() {
+            std::thread thread1([&pcap, &argv, &errbuff]()
+            {
                 std::string file = argv[2];
-                //std::thread thread_object1(pcap_open_offline_with_tstamp_precision, file.c_str(), PCAP_TSTAMP_PRECISION_MICRO, errbuff);
-                //pcap_t *pcap = std::async(std::launch::async, pcap_open_offline_with_tstamp_precision, file.c_str(), PCAP_TSTAMP_PRECISION_MICRO, errbuff);
 
+                //pcap_t *pcap = std::async(std::launch::async, pcap_open_offline_with_tstamp_precision, file.c_str(), PCAP_TSTAMP_PRECISION_MICRO, errbuff);
                 pcap = pcap_open_offline_with_tstamp_precision(file.c_str(), PCAP_TSTAMP_PRECISION_MICRO, errbuff);
                 cout << "first thread! " << endl;
 
                 //pcap_t *pcap = pcap_open_offline_with_tstamp_precision(file.c_str(), PCAP_TSTAMP_PRECISION_MICRO, errbuff);  // first version
-            }};
+            });
+            //}};
             thread1.join();
-            std::thread thread2{[&]()
+            //std::thread thread2{[&]()
+            std::thread thread2([&filter, &pcap, &header, &packet, &useless]()
             {
                 cout << "second thread! " << endl;
                 while (pcap_next_ex(pcap, &header, &packet) >= 0)
@@ -69,7 +72,8 @@ int main(int argc, char *argv[])
                 cout << "Close" << endl;
                 pcap_close(pcap);
                 cout << "Write" << endl;
-            }};
+            //}};
+            });
             thread2.join();
         }
         else {
@@ -174,12 +178,15 @@ int main(int argc, char *argv[])
         }
         cout << "Finish_live" << endl;
 
-        while (pcap_next_ex(pcap, &header, &packet) >= 0) // чтение пакетов
+        std::thread thread3([&filter, &pcap, &header, &packet, &useless]()
+        {
+            while (pcap_next_ex(pcap, &header, &packet) >= 0) // чтение пакетов
             {
                 filter.callback(useless, header, packet); // обработка пакетов
                 filter.to_json();  // запись в файл
             }
-
+        });
+        thread3.join();
         printf("\n-------------------------------------------------------------------\n");
     }
     else
