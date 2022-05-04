@@ -22,26 +22,26 @@ void Filter::to_json() {
     Json::Value root;
     // array form
     for (auto it = source_mac.begin(); it != source_mac.end(); ++it) {
-        std::cout << " " << *it;
+        //std::cout << " " << *it;
         root["src_mac"].append(*it);
     }
     for (auto it = destination_mac.begin(); it != destination_mac.end(); ++it) {
-        std::cout << " " << *it;
+        //std::cout << " " << *it;
         root["dst_mac"].append(*it);
     }
     for (auto it = source_ip.begin(); it != source_ip.end(); ++it) {
-        std::cout << " " << *it;
+        //std::cout << " " << *it;
         root["src_ip"].append(*it);
     }
     for (auto it = destination_ip.begin(); it != destination_ip.end(); ++it) {
-        std::cout << " " << *it;
+        //std::cout << " " << *it;
         root["dst_ip"].append(*it);
     }
     for (auto it = proto.begin(); it != proto.end(); ++it) {
-        std::cout << " " << *it;
+        //std::cout << " " << *it;
         root["proto"].append(*it);
     }
-    cout << "StyledWriter:" << endl;
+
     Json::StyledWriter sw;
     //cout << sw.write(root) << endl << endl;
 
@@ -63,7 +63,7 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     char ether_dmac[256];
 
     cout << "Packet number: " << countPacket++ << endl;
-    //cout << "Packet size: " << header->len << " bytes" << endl;
+    cout << "Packet size: " << header->len << " bytes" << endl;
     cout << endl;
 
     ftype=ntohs(ethernet->ether_type);
