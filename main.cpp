@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
     char file_check[3] = "-f";
     char setings_reg[3] = "-s";
     sscanf(argv[1], "%s", param);
-    printf("%s\n", param);
 
     Filter filter;
 
@@ -34,9 +33,7 @@ int main(int argc, char *argv[])
     struct bpf_program fcode;   // Скомпилированный фильтр
     struct in_addr net_addr, mask_addr;
 
-    char *dev, errbuff[PCAP_ERRBUF_SIZE];
-    char *net;
-    char *mask;
+    char *dev, *net, *mask, errbuff[PCAP_ERRBUF_SIZE];
     pcap_t *pcap;  // packet caputre descriptor.
     u_char *useless;
     struct pcap_pkthdr *header;
@@ -176,14 +173,18 @@ int main(int argc, char *argv[])
             fprintf(stderr, "set filter error\n");
             return 1;
         }
-        cout << "Finish_live" << endl;
 
         std::thread thread3([&filter, &pcap, &header, &packet, &useless]()
         {
             while (pcap_next_ex(pcap, &header, &packet) >= 0) // чтение пакетов
             {
-                filter.callback(useless, header, packet); // обработка пакетов
-                filter.to_json();  // запись в файл
+                //filter.callback(useless, header, packet); // обработка пакетов
+                //filter.to_json();  // запись в файл
+
+                thread thread4(&Filter::callback, &filter, useless, header, packet); // обработка пакетов
+                thread4.join();
+                thread thread5(&Filter::to_json, &filter); // обработка пакетов
+                thread5.join();
             }
         });
         thread3.join();
