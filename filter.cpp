@@ -14,6 +14,8 @@ Filter::~Filter() {
     source_ip.clear();
     destination_ip.clear();
     proto.clear();
+    unic_ipport.clear();
+    session_ip.clear();
     countPacket = 0;
 }
 
@@ -29,6 +31,7 @@ void Filter::to_json() {
         //std::cout << " " << *it;
         root["dst_mac"].append(*it);
     }
+
     for (auto it = source_ip.begin(); it != source_ip.end(); ++it) {
         //std::cout << " " << *it;
         root["src_ip"].append(*it);
@@ -37,9 +40,34 @@ void Filter::to_json() {
         //std::cout << " " << *it;
         root["dst_ip"].append(*it);
     }
+
     for (auto it = proto.begin(); it != proto.end(); ++it) {
         //std::cout << " " << *it;
         root["proto"].append(*it);
+    }
+
+    for (auto it = src_port.begin(); it != src_port.end(); ++it) {
+        //std::cout << " " << *it;
+        root["src_port"].append(ntohs(*it));
+    }
+    for (auto it = dst_port.begin(); it != dst_port.end(); ++it) {
+        //std::cout << " " << *it;
+        root["dst_port"].append(ntohs(*it));
+    }
+
+    for (auto it = unic_ipport.begin(); it != unic_ipport.end(); ++it) {
+        //std::cout << " " << *it;
+        root["unic_ip+port"].append(*it);
+    }
+
+    for (auto it = session_ip.begin(); it != session_ip.end(); ++it) {
+        //std::cout << " " << *it;
+        root["session_ip"].append(*it);
+    }
+
+    for (auto it = session_mac.begin(); it != session_mac.end(); ++it) {
+        //std::cout << " " << *it;
+        root["session_mac"].append(*it);
     }
 
     Json::StyledWriter sw;
@@ -59,8 +87,12 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     arp = (struct arp_head *)(packet + size_ethernet);
     payload = (u_char *)(packet + size_ethernet + size_ip + size_tcp);
 
-    char ether_smac[256];
-    char ether_dmac[256];
+    u_char ether_smac[17];
+    u_char ether_dmac[17];
+
+    std::string str1;
+    std::string str2;
+    std::string str3;
 
     cout << "Packet number: " << countPacket++ << endl;
     cout << "Packet size: " << header->len << " bytes" << endl;
@@ -69,15 +101,21 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     ftype=ntohs(ethernet->ether_type);
     cout << "Packet type = " << ftype << endl;
 
-    smac=ethernet->ether_shost;
-    sprintf(ether_smac,"%02x:%02x:%02x:%02x:%02x:%02x",smac.ether_addr_octet[0],smac.ether_addr_octet[1],smac.ether_addr_octet[2],smac.ether_addr_octet[3],smac.ether_addr_octet[4],smac.ether_addr_octet[5]);
+/*    sprintf(reinterpret_cast<char *>(ether_smac),"%02x:%02x:%02x:%02x:%02x:%02x",ethernet->ether_shost[0],ethernet->ether_shost[1],ethernet->ether_shost[2],ethernet->ether_shost[3],ethernet->ether_shost[4],ethernet->ether_shost[5]);
     cout << "Source MAC: " << ether_smac << endl;
-    source_mac.insert(ether_smac);
+    source_mac.insert(reinterpret_cast<char *>(ether_smac));*/
+    sprintf(reinterpret_cast<char *>(ether_smac),"%02x:%02x:%02x:%02x:%02x:%02x",ethernet->ether_shost[0],ethernet->ether_shost[1],ethernet->ether_shost[2],ethernet->ether_shost[3],ethernet->ether_shost[4],ethernet->ether_shost[5]);
+    cout << "Source MAC: " << ether_smac << endl;
+    source_mac.insert(reinterpret_cast<char *>(ether_smac));
 
-    dmac=ethernet->ether_dhost;
-    sprintf(ether_dmac,"%02x:%02x:%02x:%02x:%02x:%02x",dmac.ether_addr_octet[0],dmac.ether_addr_octet[1],dmac.ether_addr_octet[2],dmac.ether_addr_octet[3],dmac.ether_addr_octet[4],dmac.ether_addr_octet[5]);
+    sprintf(reinterpret_cast<char *>(ether_dmac),"%02x:%02x:%02x:%02x:%02x:%02x",ethernet->ether_dhost[0],ethernet->ether_dhost[1],ethernet->ether_dhost[2],ethernet->ether_dhost[3],ethernet->ether_dhost[4],ethernet->ether_dhost[5]);
     cout << "Destination MAC: " << ether_dmac << endl;
-    destination_mac.insert(ether_dmac);
+    destination_mac.insert(reinterpret_cast<char *>(ether_dmac));
+
+    str1 = reinterpret_cast<char *>(ether_smac);
+    str2 = reinterpret_cast<char *>(ether_dmac);
+    str3 = str1+" - "+str2;
+    session_mac.insert(str3);
 
     cout << endl;
     switch(ftype){
@@ -94,6 +132,23 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
             source_ip.insert(inet_ntoa(ip->ip_src));
             destination_ip.insert(inet_ntoa(ip->ip_dst));
             proto.insert("IPv4");
+
+            src_port.insert(tcp->th_sport);
+            dst_port.insert(tcp->th_dport);
+
+            str1 = inet_ntoa(ip->ip_dst);
+            str2 = to_string(ntohs(tcp->th_dport));
+            str3 = str1+":"+str2;
+            unic_ipport.insert(str3);
+
+            str1 = inet_ntoa(ip->ip_src);
+            str2 = to_string(ntohs(tcp->th_sport));
+            str3 = str1+":"+str2;
+            unic_ipport.insert(str3);
+
+            str2 = inet_ntoa(ip->ip_dst);
+            str3 = str1+" - "+str2;
+            session_ip.insert(str3);
 
             switch (ip->ip_p) //Check the Protocol and do accordingly...
             {
@@ -119,6 +174,15 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
             proto.insert("ARP");
             source_ip.insert(inet_ntoa(arp->send_ip));
             destination_ip.insert(inet_ntoa(arp->target_ip));
+
+            str1 = inet_ntoa(arp->send_ip);
+            str2 = inet_ntoa(arp->target_ip);
+            unic_ipport.insert(str1);
+            unic_ipport.insert(str2);
+
+            str3 = str1+" - "+str2;
+            session_ip.insert(str3);
+
             break;
 
         case 0x8100:
@@ -147,6 +211,7 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
 
         default:
             cout << "EEROR TYPE FRAME" << endl;
+            break;
     }
     cout << endl << "--------------------------------------" << endl;
 }

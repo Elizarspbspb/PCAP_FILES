@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <arpa/inet.h>
-
+#include <cstring>
 #include <set>
 #include <unordered_set>
 #include "structures.h"
@@ -27,7 +27,17 @@ private:
     unordered_set<string> destination_mac;
     unordered_set<string> source_ip;
     unordered_set<string> destination_ip;
+
+    unordered_set<u_short> src_port;
+    unordered_set<u_short> dst_port;
+
+    unordered_set<string> unic_ipport;
+
+    unordered_set<string> session_ip;
+    unordered_set<string> session_mac;
+
     unordered_set<string> proto;
+
     struct ether_addr smac;
     struct ether_addr dmac;
     int countPacket;
@@ -39,4 +49,7 @@ public:
 
     void to_json(); // запись в файл
     void callback(u_char *useless, pcap_pkthdr *header, const u_char *packet); // обработка пакетов
+
+
+    int ether_smac;
 };
