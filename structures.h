@@ -2,11 +2,18 @@
 #include <netinet/in.h>
 
 /* Ethernet header 6 byte*/
-struct sniff_ethernet
+/*struct sniff_ethernet
 {
     struct ether_addr ether_dhost;
     struct ether_addr ether_shost;
-    u_short ether_type;					/* IP? ARP? RARP? etc */
+    u_short ether_type;					*//* IP? ARP? RARP? etc *//*
+};*/
+
+/* Заголовок Ethernet */
+struct sniff_ethernet {
+    u_char ether_dhost[ETHER_ADDR_LEN]; /* Адрес назначения */
+    u_char ether_shost[ETHER_ADDR_LEN]; /* Адрес источника */
+    u_short ether_type; /* IP? ARP? RARP? и т.д. */
 };
 
 /* IP header */

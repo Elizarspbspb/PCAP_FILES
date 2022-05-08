@@ -46,14 +46,14 @@ void Filter::to_json() {
         root["proto"].append(*it);
     }
 
-    for (auto it = src_port.begin(); it != src_port.end(); ++it) {
+/*    for (auto it = src_port.begin(); it != src_port.end(); ++it) {
         //std::cout << " " << *it;
         root["src_port"].append(ntohs(*it));
     }
     for (auto it = dst_port.begin(); it != dst_port.end(); ++it) {
         //std::cout << " " << *it;
         root["dst_port"].append(ntohs(*it));
-    }
+    }*/
 
     for (auto it = unic_ipport.begin(); it != unic_ipport.end(); ++it) {
         //std::cout << " " << *it;
@@ -84,6 +84,7 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     ethernet = (struct sniff_ethernet *)(packet);
     ip = (struct sniff_ip *)(packet + size_ethernet);
     tcp = (struct sniff_tcp *)(packet + size_ethernet + size_ip);
+    udp = (struct sniff_udp *)(packet + size_ethernet + size_ip);
     arp = (struct arp_head *)(packet + size_ethernet);
     payload = (u_char *)(packet + size_ethernet + size_ip + size_tcp);
 
@@ -101,9 +102,6 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     ftype=ntohs(ethernet->ether_type);
     cout << "Packet type = " << ftype << endl;
 
-/*    sprintf(reinterpret_cast<char *>(ether_smac),"%02x:%02x:%02x:%02x:%02x:%02x",ethernet->ether_shost[0],ethernet->ether_shost[1],ethernet->ether_shost[2],ethernet->ether_shost[3],ethernet->ether_shost[4],ethernet->ether_shost[5]);
-    cout << "Source MAC: " << ether_smac << endl;
-    source_mac.insert(reinterpret_cast<char *>(ether_smac));*/
     sprintf(reinterpret_cast<char *>(ether_smac),"%02x:%02x:%02x:%02x:%02x:%02x",ethernet->ether_shost[0],ethernet->ether_shost[1],ethernet->ether_shost[2],ethernet->ether_shost[3],ethernet->ether_shost[4],ethernet->ether_shost[5]);
     cout << "Source MAC: " << ether_smac << endl;
     source_mac.insert(reinterpret_cast<char *>(ether_smac));
@@ -117,21 +115,67 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
     str3 = str1+" - "+str2;
     session_mac.insert(str3);
 
-    cout << endl;
+    it_et = ethernet_protocols.find(ftype);
+    if(it_et == ethernet_protocols.end()) {
+        if (ftype < 1500) {
+            proto.insert("IEEE 802.3 or/and 802.2");
+        }
+        else {
+            proto.insert("Unknown ethernet protocol");
+            cout << "Unknown ethernet protocol" << endl;
+        }
+    }
+    else {
+        cout << it_et->second << endl;
+        proto.insert(it_et->second);
+    }
+
     switch(ftype){
         case 0x0800:
-            cout << endl;
             cout << "IP Version = " << (ip->ip_vhl) << endl;
             cout << "IP Source Address = " << inet_ntoa(ip->ip_src) << endl;
             cout << "IP Dest Address = " << inet_ntoa(ip->ip_dst) << endl;
-
             cout << "TCP source port = " << ntohs(tcp->th_sport) << endl;
             cout << "TCP dest port = " << ntohs(tcp->th_dport) << endl;
-            //cout << "Packet handled = " << (char *)payload << endl;
+
+            it_ip = ip_protocols.find(ip->ip_p);
+            cout << it_ip->second << endl;
+            proto.insert(it_ip->second);
+
+            if(it_ip->second == "TCP") {
+                it_ports_tcp = ports_tcp.find(ntohs(tcp->th_sport));
+                if(it_ports_tcp == ports_tcp.end())
+                    ;
+                else {
+                    proto.insert(it_ports_tcp->second);
+                }
+
+                it_ports_tcp = ports_tcp.find(ntohs(tcp->th_dport));
+                if(it_ports_tcp == ports_tcp.end())
+                    ;
+                else {
+                    proto.insert(it_ports_tcp->second);
+                }
+            }
+            else if(it_ip->second == "UDP")
+            {
+                it_ports_udp = ports_udp.find(ntohs(udp->udp_sport));
+                if(it_ports_udp == ports_udp.end())
+                    ;
+                else {
+                    proto.insert(it_ports_udp->second);
+                }
+
+                it_ports_udp = ports_udp.find(ntohs(udp->udp_dport));
+                if(it_ports_udp == ports_udp.end())
+                    ;
+                else {
+                    proto.insert(it_ports_udp->second);
+                }
+            }
 
             source_ip.insert(inet_ntoa(ip->ip_src));
             destination_ip.insert(inet_ntoa(ip->ip_dst));
-            proto.insert("IPv4");
 
             src_port.insert(tcp->th_sport);
             dst_port.insert(tcp->th_dport);
@@ -149,29 +193,9 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
             str2 = inet_ntoa(ip->ip_dst);
             str3 = str1+" - "+str2;
             session_ip.insert(str3);
-
-            switch (ip->ip_p) //Check the Protocol and do accordingly...
-            {
-                    case 1:  //ICMP Protocol
-                        proto.insert("ICMP");
-                        break;
-                    case 2:  //IGMP Protocol
-                        proto.insert("IGMP");
-                        break;
-                    case 6:  //TCP Protocol
-                        proto.insert("TCP");
-                        break;
-                    case 17: //UDP Protocol
-                        proto.insert("UDP");
-                        break;
-                    default: //Some Other Protocol like ARP etc.
-                        proto.insert("Some Other Protocol");
-                        break;
-            }
             break;
 
         case 0x0806:
-            proto.insert("ARP");
             source_ip.insert(inet_ntoa(arp->send_ip));
             destination_ip.insert(inet_ntoa(arp->target_ip));
 
@@ -182,35 +206,10 @@ void Filter::callback(u_char *useless, pcap_pkthdr *header, const u_char *packet
 
             str3 = str1+" - "+str2;
             session_ip.insert(str3);
-
-            break;
-
-        case 0x8100:
-            proto.insert("8021Q");
-            source_ip.insert(inet_ntoa(arp->send_ip));
-            destination_ip.insert(inet_ntoa(arp->target_ip));
-            break;
-
-        case 0x86dd:
-            proto.insert("IPV6");
-            source_ip.insert(inet_ntoa(arp->send_ip));
-            destination_ip.insert(inet_ntoa(arp->target_ip));
-            break;
-
-        case 0x880b:
-            proto.insert("PPP");
-            source_ip.insert(inet_ntoa(arp->send_ip));
-            destination_ip.insert(inet_ntoa(arp->target_ip));
-            break;
-
-        case 0x8863:
-            proto.insert("PPPOED");
-            source_ip.insert(inet_ntoa(arp->send_ip));
-            destination_ip.insert(inet_ntoa(arp->target_ip));
             break;
 
         default:
-            cout << "EEROR TYPE FRAME" << endl;
+            cout << "ERROR TYPE FRAME" << endl;
             break;
     }
     cout << endl << "--------------------------------------" << endl;
